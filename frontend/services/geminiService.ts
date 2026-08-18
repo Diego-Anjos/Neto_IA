@@ -4,9 +4,9 @@ import type { InstructionStep } from '../types';
 
 // Helper to safely get and parse API keys from environment variables.
 const getApiKeys = (): string[] => {
-    const apiKeysString = process.env.API_KEY;
+    const apiKeysString = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKeysString) {
-        console.error("A variável de ambiente API_KEY não está definida ou está vazia.");
+        console.error("A variável de ambiente VITE_GEMINI_API_KEY não está definida ou está vazia.");
         return [];
     }
     // Split by comma, trim whitespace from each key, and filter out any empty strings.
