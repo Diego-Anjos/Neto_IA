@@ -8,6 +8,12 @@ const QuestionIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" v
 const BookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 mb-3 text-pink-400"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>;
 const BulbIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 mb-3 text-pink-400"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.311a7.5 7.5 0 0 1-7.5 0c1.433-.923 2.553-2.52 3.75-4.622m0 0a7.5 7.5 0 0 1 7.5 0c-1.197 2.102-2.317 3.699-3.75 4.622M12 6.75a2.25 2.25 0 1 1 0-4.5 2.25 2.25 0 0 1 0 4.5Z" /></svg>;
 
+const MenuIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+        <path fillRule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75ZM3 12a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+    </svg>
+);
+
 
 interface WelcomeScreenProps {
     userName: string;
@@ -16,21 +22,21 @@ interface WelcomeScreenProps {
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ userName }) => {
     const t = useTranslations();
     return (
-        <div className="flex flex-col items-center justify-center h-full text-center text-gray-200 p-8">
-            <h2 className="text-4xl font-bold mb-2 text-white">{t('welcomeTitle', { userName })}</h2>
-            <p className="mt-2 mb-10 max-w-lg text-lg text-gray-400">{t('welcomeSubtitle')}</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
-                <div className="bg-violet-900/40 p-6 rounded-xl border border-white/10">
+        <div className="flex flex-col items-center justify-center h-full text-center text-gray-200 p-3 sm:p-4 md:p-8">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-white">{t('welcomeTitle', { userName })}</h2>
+            <p className="mt-2 mb-6 md:mb-10 max-w-lg text-base md:text-lg text-gray-400">{t('welcomeSubtitle')}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl w-full">
+                <div className="bg-violet-900/40 p-4 md:p-6 rounded-xl border border-white/10">
                     <QuestionIcon />
                     <h3 className="font-semibold text-lg mb-1 text-white">{t('welcomeCard1Title')}</h3>
                     <p className="text-gray-400 text-sm">{t('welcomeCard1Body')}</p>
                 </div>
-                <div className="bg-violet-900/40 p-6 rounded-xl border border-white/10">
+                <div className="bg-violet-900/40 p-4 md:p-6 rounded-xl border border-white/10">
                     <BookIcon />
                     <h3 className="font-semibold text-lg mb-1 text-white">{t('welcomeCard2Title')}</h3>
                     <p className="text-gray-400 text-sm">{t('welcomeCard2Body')}</p>
                 </div>
-                <div className="bg-violet-900/40 p-6 rounded-xl border border-white/10">
+                <div className="bg-violet-900/40 p-4 md:p-6 rounded-xl border border-white/10">
                     <BulbIcon />
                     <h3 className="font-semibold text-lg mb-1 text-white">{t('welcomeCard3Title')}</h3>
                     <p className="text-gray-400 text-sm">{t('welcomeCard3Body')}</p>
@@ -45,10 +51,13 @@ interface ChatInterfaceProps {
     messages: Message[];
     onSendMessage: (text: string) => void;
     userName: string;
+    onOpenMenu: () => void;
+    onOpenFeedback: () => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, userName }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, userName, onOpenMenu, onOpenFeedback }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const t = useTranslations();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,8 +68,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
     }, [messages]);
 
     return (
-        <main className="flex-1 flex flex-col h-screen max-h-screen">
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <main className="flex-1 w-full h-full min-h-0 min-w-0 flex flex-col overflow-hidden">
+            <div className="flex items-center gap-3 p-3 border-b border-white/10 md:hidden flex-shrink-0">
+                <button
+                    type="button"
+                    onClick={onOpenMenu}
+                    className="w-12 h-12 min-w-12 min-h-12 flex items-center justify-center rounded-lg bg-violet-800/60 hover:bg-violet-700 transition-colors"
+                    aria-label={t('openMenu')}
+                >
+                    <MenuIcon />
+                </button>
+                <h1 className="text-xl font-bold text-white">
+                    Neto<span className="text-pink-400">IA</span>
+                </h1>
+            </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
                 {messages.length === 0 ? (
                     <WelcomeScreen userName={userName} />
                 ) : (
@@ -70,8 +92,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
                 )}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="p-6 pt-2">
-                <InputBar onSendMessage={onSendMessage} />
+            <div className="p-3 sm:p-4 md:p-6 pt-2 flex-shrink-0">
+                <InputBar onSendMessage={onSendMessage} onOpenFeedback={onOpenFeedback} />
             </div>
         </main>
     );

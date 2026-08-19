@@ -20,7 +20,7 @@ const PasswordPromptModal: React.FC<PasswordPromptModalProps> = ({ user, onConfi
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out]">
-            <div className="w-full max-w-sm p-8 space-y-6 bg-[#251544] rounded-xl shadow-lg border border-white/10">
+            <div className="w-full max-w-sm mx-4 p-6 sm:p-8 space-y-6 bg-[#251544] rounded-xl shadow-lg border border-white/10">
                 <div className="text-center">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-violet-600 flex items-center justify-center font-bold text-white text-3xl">
                         {user.name.charAt(0).toUpperCase()}

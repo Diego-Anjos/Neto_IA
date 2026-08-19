@@ -1,99 +1,110 @@
 import React, { useState } from 'react';
+import { Bot, Check } from 'lucide-react';
 import { useTranslations } from '../hooks/useTranslations';
+import { sendFeedback } from '../services/api';
 
 interface GabiAssistantModalProps {
     onClose: () => void;
-    onSubmit: (feedback: string) => void;
+    userId?: string;
 }
 
-const GabiIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-12 h-12 text-pink-400">
-        <path fillRule="evenodd" d="M4.5 3.75a3 3 0 00-3 3v10.5a3 3 0 003 3h15a3 3 0 003-3V6.75a3 3 0 00-3-3h-15zm4.125 3.375a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5h-6.75zm0 3.75a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5h-6.75zm0 3.75a.75.75 0 000 1.5h4.5a.75.75 0 000-1.5h-4.5z" clipRule="evenodd" />
-    </svg>
-);
-
-const GabiAssistantModal: React.FC<GabiAssistantModalProps> = ({ onClose, onSubmit }) => {
+const GabiAssistantModal: React.FC<GabiAssistantModalProps> = ({ onClose, userId }) => {
     const [feedback, setFeedback] = useState('');
-    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const t = useTranslations();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (feedback.trim()) {
-            onSubmit(feedback);
-            setIsSubmitted(true);
+        const message = feedback.trim();
+        if (!message || isSubmitting) return;
+
+        setIsSubmitting(true);
+        setErrorMessage('');
+
+        try {
+            await sendFeedback(message, userId);
+            setIsSuccess(true);
+        } catch (error) {
+            console.error('Falha ao enviar feedback', error);
+            setErrorMessage(t('gabiFeedbackError'));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const handleSendAnother = () => {
-        setFeedback('');
-        setIsSubmitted(false);
-    };
-
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out]">
-            <div className="w-full max-w-lg p-8 space-y-6 bg-[#251544] rounded-xl shadow-lg border border-white/10">
-                {isSubmitted ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="gabi-modal-title"
+                className="w-full max-w-lg bg-[#1b1429] border border-violet-700 rounded-2xl p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
+                {isSuccess ? (
                     <div className="text-center">
-                        <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-violet-900/50 flex items-center justify-center">
-                            <GabiIcon />
+                        <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-600/30 border border-pink-400/30 flex items-center justify-center shadow-lg shadow-pink-600/10">
+                            <Check className="w-10 h-10 text-pink-400" strokeWidth={2.5} aria-hidden="true" />
                         </div>
-                        <h2 className="text-3xl font-bold text-white">{t('gabiSuccessTitle')}</h2>
-                        <p className="mt-2 text-gray-400">
+                        <h2 id="gabi-modal-title" className="text-3xl font-bold text-white">
+                            {t('gabiSuccessTitle')}
+                        </h2>
+                        <p className="mt-3 text-lg text-gray-300">
                             {t('gabiSuccessMessage')}
                         </p>
-                        <div className="flex gap-4 pt-8">
-                             <button
-                                type="button"
-                                onClick={onClose}
-                                className="w-full px-4 py-3 font-semibold text-white bg-violet-700/50 rounded-lg hover:bg-violet-700/80 transition-colors"
-                            >
-                                {t('closeButton')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSendAnother}
-                                className="w-full px-4 py-3 font-semibold text-white bg-pink-600 rounded-lg hover:bg-pink-700 transition-colors"
-                            >
-                                {t('sendAnotherFeedbackButton')}
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="mt-8 w-full px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-pink-600/20 transition-all"
+                        >
+                            {t('closeButton')}
+                        </button>
                     </div>
                 ) : (
                     <>
-                        <div className="text-center">
-                            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-violet-900/50 flex items-center justify-center">
-                                <GabiIcon />
+                        <div className="text-center mb-6">
+                            <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-600/30 border border-pink-400/30 flex items-center justify-center shadow-lg shadow-pink-600/10">
+                                <Bot className="w-10 h-10 text-pink-300" strokeWidth={1.8} aria-hidden="true" />
                             </div>
-                            <h2 className="text-3xl font-bold text-white">{t('gabiTitle')}</h2>
-                            <p className="mt-2 text-gray-400">
+                            <h2 id="gabi-modal-title" className="text-3xl font-bold text-white">
+                                {t('gabiTitle')}
+                            </h2>
+                            <p className="mt-2 text-lg text-gray-300">
                                 {t('gabiSubtitle')}
                             </p>
                         </div>
-                        <form className="space-y-4" onSubmit={handleSubmit}>
+                        <form className="space-y-6" onSubmit={handleSubmit}>
                             <textarea
                                 value={feedback}
                                 onChange={(e) => setFeedback(e.target.value)}
                                 placeholder={t('feedbackPlaceholder')}
-                                rows={5}
-                                className="block w-full px-4 py-3 text-white bg-transparent border-2 border-violet-700 rounded-lg appearance-none focus:outline-none focus:ring-0 focus:border-pink-500 resize-none"
+                                disabled={isSubmitting}
+                                className="w-full bg-[#140f1f] border border-violet-700/50 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all rounded-xl p-4 text-lg text-white resize-none min-h-[120px] placeholder:text-gray-500 focus:outline-none disabled:opacity-60"
                                 aria-label={t('feedbackPlaceholder')}
                             />
 
-                            <div className="flex gap-4 pt-2">
+                            {errorMessage && (
+                                <p className="text-base text-red-400" role="alert">
+                                    {errorMessage}
+                                </p>
+                            )}
+
+                            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="w-full px-4 py-3 font-semibold text-white bg-violet-700/50 rounded-lg hover:bg-violet-700/80 transition-colors"
+                                    disabled={isSubmitting}
+                                    className="px-6 py-3 text-gray-400 font-semibold hover:text-white hover:bg-white/5 rounded-xl transition-colors disabled:opacity-50"
                                 >
                                     {t('cancelButton')}
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={!feedback.trim()}
-                                    className="w-full px-4 py-3 font-semibold text-white bg-pink-600 rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={!feedback.trim() || isSubmitting}
+                                    className="px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-pink-600/20 transition-all disabled:opacity-50"
                                 >
-                                    {t('sendFeedbackButton')}
+                                    {isSubmitting ? t('sendingFeedbackButton') : t('sendFeedbackButton')}
                                 </button>
                             </div>
                         </form>

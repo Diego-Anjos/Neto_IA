@@ -7,6 +7,7 @@ export interface InstructionStep {
 export type MessageRole = 'user' | 'assistant' | 'loading' | 'error';
 
 export interface Message {
+  id?: string;
   role: MessageRole;
   content: string | InstructionStep[];
 }
@@ -18,7 +19,8 @@ export interface Conversation {
 }
 
 export interface User {
+  id: string;
   name: string;
   email: string;
-  passwordHash: string;
+  language?: string;
 }

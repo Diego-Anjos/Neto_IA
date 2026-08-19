@@ -76,14 +76,14 @@ const InstructionStepComponent: React.FC<InstructionStepProps> = ({ step }) => {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-start gap-4 p-4 border-b border-white/10 last:border-b-0 last:pb-0">
+    <div className="flex flex-col sm:flex-row items-start gap-4 p-4 border-b border-white/10 last:border-b-0 last:pb-0 min-w-0">
         <div className="flex items-center justify-center bg-white/10 text-white font-bold rounded-full w-10 h-10 text-xl flex-shrink-0">
             {step.step}
         </div>
-        <div className="flex-1">
-            <p className="mb-3 text-white/90">{step.text}</p>
+        <div className="flex-1 min-w-0">
+            <p className="mb-3 text-white/90 break-words">{step.text}</p>
             
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <button 
                     onClick={() => setIsImageVisible(!isImageVisible)}
                     className="flex items-center gap-2 text-sm text-pink-400 hover:text-pink-300 font-medium transition-colors p-2 rounded-md bg-white/5 hover:bg-white/10"

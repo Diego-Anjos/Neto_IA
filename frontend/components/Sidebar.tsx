@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Conversation, User } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
+import ConfirmModal from './ConfirmModal';
 
 // Icons for the sidebar
 const PlusIcon = () => (
@@ -45,6 +46,8 @@ interface SidebarProps {
     allUsers: User[];
     conversations: Conversation[];
     activeConversationId: string | null;
+    isOpen: boolean;
+    onClose: () => void;
     onNewConversation: () => void;
     onSelectConversation: (id: string) => void;
     onDeleteConversation: (id: string) => void;
@@ -53,8 +56,10 @@ interface SidebarProps {
     onOpenSettings: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, activeConversationId, onNewConversation, onSelectConversation, onDeleteConversation, onSwitchUser, onLogout, onOpenSettings }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, activeConversationId, isOpen, onClose, onNewConversation, onSelectConversation, onDeleteConversation, onSwitchUser, onLogout, onOpenSettings }) => {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const t = useTranslations();
     
@@ -71,9 +76,21 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
     const handleDelete = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         e.preventDefault();
-        if (window.confirm(t('deleteConversationConfirm'))) {
-            onDeleteConversation(id);
+        setConversationToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (conversationToDelete) {
+            onDeleteConversation(conversationToDelete);
         }
+        setIsDeleteModalOpen(false);
+        setConversationToDelete(null);
+    };
+
+    const handleCancelDelete = () => {
+        setIsDeleteModalOpen(false);
+        setConversationToDelete(null);
     };
 
     const handleSwitch = (userToSwitch: User) => {
@@ -86,19 +103,49 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
         setIsUserMenuOpen(false);
     };
 
+    const handleSelect = (id: string) => {
+        onSelectConversation(id);
+        onClose();
+    };
+
     return (
-        <aside className="w-80 bg-[#1e103d] flex flex-col p-4 h-screen border-r border-white/10 flex-shrink-0">
+        <>
+            {isOpen && (
+                <button
+                    type="button"
+                    className="fixed inset-0 bg-black/60 z-40 md:hidden"
+                    onClick={onClose}
+                    aria-label={t('closeMenu')}
+                />
+            )}
+            <aside
+                className={`fixed md:static inset-y-0 left-0 z-50 w-[min(20rem,90vw)] md:w-80 h-full bg-[#1e103d] flex flex-col p-4 border-r border-white/10 flex-shrink-0 transform transition-transform duration-200 ease-out ${
+                    isOpen ? 'translate-x-0' : '-translate-x-full'
+                } md:translate-x-0`}
+            >
             <div>
-                <div className="mb-6 px-2">
-                    <h1 className="text-3xl font-bold text-white">
-                        Neto<span className="text-pink-400">IA</span>
-                    </h1>
-                    <p className="text-gray-400 text-sm">{t('netoIAAssistant')}</p>
+                <div className="mb-6 px-2 flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                        <h1 className="text-3xl font-bold text-white">
+                            Neto<span className="text-pink-400">IA</span>
+                        </h1>
+                        <p className="text-gray-400 text-sm">{t('netoIAAssistant')}</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="md:hidden w-12 h-12 min-w-12 min-h-12 flex items-center justify-center rounded-lg bg-violet-800/60 hover:bg-violet-700 transition-colors"
+                        aria-label={t('closeMenu')}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                            <path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                        </svg>
+                    </button>
                 </div>
 
                 <button
-                    onClick={onNewConversation}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-6 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 transition-colors"
+                    onClick={() => { onNewConversation(); onClose(); }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-6 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 transition-colors min-h-12"
                 >
                     <PlusIcon />
                     {t('newConversation')}
@@ -107,13 +154,13 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
             
             <div className="flex-1 flex flex-col min-h-0">
                 <h2 className="text-sm font-semibold text-gray-400 mb-2 px-2">{t('history')}</h2>
-                <nav className="flex-1 overflow-y-auto space-y-1 pr-2 -mr-2">
+                <nav className="flex-1 overflow-y-auto space-y-1 pr-1">
                     {conversations.map(convo => (
                         <a
                             key={convo.id}
                             href="#"
-                            onClick={(e) => { e.preventDefault(); onSelectConversation(convo.id); }}
-                            className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm truncate transition-colors w-full ${
+                            onClick={(e) => { e.preventDefault(); handleSelect(convo.id); }}
+                            className={`group relative flex items-center gap-3 px-3 py-3 rounded-md text-sm truncate transition-colors w-full min-h-12 ${
                                 activeConversationId === convo.id 
                                     ? 'bg-violet-600 text-white font-medium' 
                                     : 'text-gray-300 hover:bg-violet-800/50 hover:text-white'
@@ -123,10 +170,10 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
                                 <span className="absolute left-0 top-2 bottom-2 w-1 bg-pink-400 rounded-r-full"></span>
                             )}
                             <ChatIcon />
-                            <span className="flex-1 pr-8">{convo.title}</span>
+                            <span className="flex-1 pr-8 min-w-0 truncate">{convo.title}</span>
                             <button
                                 onClick={(e) => handleDelete(e, convo.id)}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-400 hover:bg-red-500/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-gray-400 hover:bg-red-500/20 hover:text-red-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all min-w-10 min-h-10 flex items-center justify-center"
                                 aria-label={`Excluir conversa ${convo.title}`}
                             >
                                 <TrashIcon />
@@ -172,7 +219,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
                     </div>
                 <button
                     onClick={() => setIsUserMenuOpen(prev => !prev)} 
-                    className="w-full flex items-center justify-between p-2 hover:bg-violet-800/50 rounded-md transition-colors"
+                    className="w-full flex items-center justify-between p-2 min-h-12 hover:bg-violet-800/50 rounded-md transition-colors"
                 >
                      <div className="flex items-center gap-3 overflow-hidden">
                         <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center font-bold text-white flex-shrink-0">
@@ -184,6 +231,16 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
                 </button>
             </div>
         </aside>
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title={t('deleteConversationTitle')}
+                message={t('deleteConversationConfirm')}
+                confirmText={t('deleteButton')}
+                cancelText={t('cancelButton')}
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+            />
+        </>
     );
 };
 

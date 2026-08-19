@@ -59,7 +59,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     ? 'bg-violet-700 text-white self-end'
     : 'bg-[#2a1a49] text-white self-start';
   
-  const containerClasses = isUser ? 'flex justify-end' : 'flex justify-start';
+  const containerClasses = isUser ? 'flex justify-end min-w-0' : 'flex justify-start min-w-0';
   
   const getTextContent = (content: string | InstructionStep[]): string => {
     if (typeof content === 'string') {
@@ -100,7 +100,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   if (isLoading) {
     return (
         <div className={containerClasses}>
-            <div className={`px-5 py-3 rounded-xl max-w-2xl text-lg ${bubbleClasses}`}>
+            <div className={`px-4 sm:px-5 py-3 rounded-xl max-w-[90%] sm:max-w-2xl text-base sm:text-lg break-words ${bubbleClasses}`}>
                 <LoadingIndicator />
             </div>
         </div>
@@ -110,7 +110,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   if (isError) {
     return (
         <div className={containerClasses}>
-            <div className={`px-5 py-4 rounded-xl max-w-2xl text-lg bg-red-900/70 text-white self-start`}>
+            <div className={`px-4 sm:px-5 py-4 rounded-xl max-w-[90%] sm:max-w-2xl text-base sm:text-lg bg-red-900/70 text-white self-start break-words`}>
                 <strong>{t('errorMessage')}</strong>
                 <p>{message.content as string}</p>
             </div>
@@ -120,7 +120,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
   return (
     <div className={containerClasses}>
-      <div className={`px-5 py-4 rounded-xl max-w-2xl text-lg leading-relaxed ${bubbleClasses}`}>
+      <div className={`px-4 sm:px-5 py-4 rounded-xl max-w-[90%] sm:max-w-2xl text-base sm:text-lg leading-relaxed break-words min-w-0 ${bubbleClasses}`}>
         {isAssistant && Array.isArray(message.content) ? (
           <div className="space-y-4">
             {(message.content as InstructionStep[]).map((step) => (

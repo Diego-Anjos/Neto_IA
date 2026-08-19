@@ -7,16 +7,22 @@ import PasswordPromptModal from './components/PasswordPromptModal';
 import GabiAssistantModal from './components/GabiAssistantModal';
 import SettingsModal from './components/SettingsModal';
 import { getInstructionsFromGemini, generateTitleFromQuery } from './services/geminiService';
+import {
+    createNewConversation,
+    deleteConversation,
+    deleteUserConversations,
+    fetchMessages,
+    fetchUserConversations,
+    fetchUsers,
+    loginUser,
+    saveMessageToDb,
+    updateConversationTitle,
+} from './services/api';
 import { useLanguage } from './contexts/LanguageContext';
 import { useTranslations } from './hooks/useTranslations';
 import type { Message, Conversation, User } from './types';
 
-
-const GabiTriggerIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
-        <path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.15l-2.11 2.42a.875.875 0 01-1.245 0l-2.11-2.42a.39.39 0 00-.297-.15 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.74c0-1.946 1.37-3.68 3.348-3.97zM8.25 9.75a.75.75 0 01.75-.75h6a.75.75 0 010 1.5h-6a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5h3a.75.75 0 000-1.5h-3z" clipRule="evenodd" />
-    </svg>
-);
+const CURRENT_USER_KEY = 'netoia-current-user';
 
 
 const App: React.FC = () => {
@@ -29,28 +35,64 @@ const App: React.FC = () => {
     const [switchError, setSwitchError] = useState<string>('');
     const [isGabiVisible, setIsGabiVisible] = useState(false);
     const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     
     const { language } = useLanguage();
     const t = useTranslations();
 
-
-    // Load users and check for logged-in user on initial load
-    useEffect(() => {
+    const loadMessagesForConversation = useCallback(async (conversationId: string) => {
         try {
-            const usersObject = JSON.parse(localStorage.getItem('netoia-users') || '{}');
-            const usersArray = Object.values(usersObject) as User[];
-            setAllUsers(usersArray);
-
-            const loggedInUserEmail = localStorage.getItem('netoia-current-user');
-            if (loggedInUserEmail && usersObject[loggedInUserEmail]) {
-                setCurrentUser(usersObject[loggedInUserEmail]);
-            }
+            const messages = await fetchMessages(conversationId);
+            setConversations(prev =>
+                prev.map(convo =>
+                    convo.id === conversationId ? { ...convo, messages } : convo
+                )
+            );
         } catch (error) {
-            console.error("Failed to load users or session", error);
+            console.error('Falha ao carregar mensagens', error);
         }
     }, []);
 
-    // Load conversations for the current user
+    const loadConversationsForUser = useCallback(async (user: User) => {
+        try {
+            let userConversations = await fetchUserConversations(user.id);
+
+            if (userConversations.length === 0) {
+                const created = await createNewConversation(user.id, t('newConversation'));
+                userConversations = [created];
+            }
+
+            setConversations(userConversations);
+            const firstId = userConversations[0].id;
+            setActiveConversationId(firstId);
+            await loadMessagesForConversation(firstId);
+        } catch (error) {
+            console.error('Falha ao carregar conversas do usuário', error);
+        }
+    }, [loadMessagesForConversation, t]);
+
+    useEffect(() => {
+        const restoreSession = async () => {
+            try {
+                const users = await fetchUsers();
+                setAllUsers(users);
+
+                const savedUser = localStorage.getItem(CURRENT_USER_KEY);
+                if (!savedUser) return;
+
+                const parsedUser: User = JSON.parse(savedUser);
+                const matchedUser = users.find(user => user.id === parsedUser.id || user.email === parsedUser.email);
+                if (matchedUser) {
+                    setCurrentUser(matchedUser);
+                }
+            } catch (error) {
+                console.error('Falha ao restaurar sessão', error);
+            }
+        };
+
+        restoreSession();
+    }, []);
+
     useEffect(() => {
         if (!currentUser) {
             setConversations([]);
@@ -58,95 +100,57 @@ const App: React.FC = () => {
             return;
         }
 
-        try {
-            const userConvoKey = `netoia-conversations-${currentUser.email}`;
-            const savedConversations = localStorage.getItem(userConvoKey);
-            if (savedConversations) {
-                const parsedConversations: Conversation[] = JSON.parse(savedConversations);
-                if (parsedConversations.length > 0) {
-                    setConversations(parsedConversations);
-                    const userActiveIdKey = `netoia-active-id-${currentUser.email}`;
-                    const lastActiveId = localStorage.getItem(userActiveIdKey);
-                    setActiveConversationId(lastActiveId || parsedConversations[0].id);
-                    return;
-                }
-            }
-        } catch (error) {
-            console.error("Failed to load conversations for user", error);
-        }
-
-        // If no saved data for this user, start a new conversation
-        const newConversation: Conversation = {
-            id: `convo-${Date.now()}`,
-            title: t('newConversation'),
-            messages: [],
-        };
-        setConversations([newConversation]);
-        setActiveConversationId(newConversation.id);
-
-    }, [currentUser, t]);
-
-    // Save conversations to localStorage whenever they change
-    useEffect(() => {
-        if (!currentUser || conversations.length === 0) return;
-        
-        const userConvoKey = `netoia-conversations-${currentUser.email}`;
-        const userActiveIdKey = `netoia-active-id-${currentUser.email}`;
-        
-        localStorage.setItem(userConvoKey, JSON.stringify(conversations));
-
-        if (activeConversationId) {
-            localStorage.setItem(userActiveIdKey, activeConversationId);
-        } else {
-            localStorage.removeItem(userActiveIdKey);
-        }
-    }, [conversations, activeConversationId, currentUser]);
+        loadConversationsForUser(currentUser);
+    }, [currentUser, loadConversationsForUser]);
     
     const handleLoginSuccess = (user: User) => {
         setCurrentUser(user);
-        localStorage.setItem('netoia-current-user', user.email);
-        
-        const userExists = allUsers.some(u => u.email === user.email);
-        if (!userExists) {
-            setAllUsers(prev => [...prev, user]);
-        }
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+        setAllUsers(prev => {
+            const exists = prev.some(item => item.id === user.id);
+            return exists ? prev.map(item => item.id === user.id ? user : item) : [...prev, user];
+        });
     };
 
     const handleLogout = () => {
         setCurrentUser(null);
-        localStorage.removeItem('netoia-current-user');
+        localStorage.removeItem(CURRENT_USER_KEY);
     };
 
-    const handleNewConversation = useCallback(() => {
-        const newConversation: Conversation = {
-            id: `convo-${Date.now()}`,
-            title: t('newConversation'),
-            messages: [],
-        };
-        setConversations(prev => [newConversation, ...prev]);
-        setActiveConversationId(newConversation.id);
-    }, [t]);
+    const handleNewConversation = useCallback(async () => {
+        if (!currentUser) return;
 
-    const handleSelectConversation = (id: string) => {
+        try {
+            const newConversation = await createNewConversation(currentUser.id, t('newConversation'));
+            setConversations(prev => [newConversation, ...prev]);
+            setActiveConversationId(newConversation.id);
+        } catch (error) {
+            console.error('Falha ao criar conversa', error);
+        }
+    }, [currentUser, t]);
+
+    const handleSelectConversation = async (id: string) => {
         setActiveConversationId(id);
+        await loadMessagesForConversation(id);
     };
     
     const handleSwitchUser = (user: User) => {
         if (currentUser?.email !== user.email) {
-            setSwitchError(''); // Clear previous errors on new attempt
+            setSwitchError('');
             setSwitchingUser(user);
         }
     };
 
-    const handleConfirmSwitch = (password: string) => {
+    const handleConfirmSwitch = async (password: string) => {
         if (!switchingUser) return;
-        
-        // In a real app, you'd compare a hash. Here we compare plaintext.
-        if (switchingUser.passwordHash === password) {
-            handleLoginSuccess(switchingUser);
+
+        try {
+            const user = await loginUser(switchingUser.email, password);
+            handleLoginSuccess(user);
             setSwitchingUser(null);
             setSwitchError('');
-        } else {
+        } catch (error) {
+            console.error('Falha ao trocar de usuário', error);
             setSwitchError(t('incorrectPasswordError'));
         }
     };
@@ -157,44 +161,40 @@ const App: React.FC = () => {
     };
 
 
-    const handleDeleteConversation = (idToDelete: string) => {
-        const updatedConversations = conversations.filter(c => c.id !== idToDelete);
+    const handleDeleteConversation = async (idToDelete: string) => {
+        try {
+            await deleteConversation(idToDelete);
+            const remaining = conversations.filter(c => c.id !== idToDelete);
 
-        if (updatedConversations.length === 0) {
-            handleNewConversation();
-            return;
-        }
-        
-        setConversations(updatedConversations);
+            if (remaining.length === 0) {
+                await handleNewConversation();
+                return;
+            }
 
-        if (activeConversationId === idToDelete) {
-            setActiveConversationId(updatedConversations[0].id);
+            setConversations(remaining);
+
+            if (activeConversationId === idToDelete) {
+                const nextId = remaining[0].id;
+                setActiveConversationId(nextId);
+                await loadMessagesForConversation(nextId);
+            }
+        } catch (error) {
+            console.error('Falha ao excluir conversa', error);
         }
     };
     
-    const handleSubmitFeedback = (feedback: string) => {
-        console.log("Feedback recebido:", feedback); // In a real app, this would send to a server
-        // The modal now handles displaying a confirmation message and closing.
-    };
-
-    const handleClearAllConversations = () => {
+    const handleClearAllConversations = async () => {
         if (!currentUser) return;
-    
-        const userConvoKey = `netoia-conversations-${currentUser.email}`;
-        localStorage.removeItem(userConvoKey);
-        const userActiveIdKey = `netoia-active-id-${currentUser.email}`;
-        localStorage.removeItem(userActiveIdKey);
-    
-        const newConversation: Conversation = {
-            id: `convo-${Date.now()}`,
-            title: t('newConversation'),
-            messages: [],
-        };
-    
-        setConversations([newConversation]);
-        setActiveConversationId(newConversation.id);
-    
-        setIsSettingsModalVisible(false);
+
+        try {
+            await deleteUserConversations(currentUser.id);
+            const newConversation = await createNewConversation(currentUser.id, t('newConversation'));
+            setConversations([newConversation]);
+            setActiveConversationId(newConversation.id);
+            setIsSettingsModalVisible(false);
+        } catch (error) {
+            console.error('Falha ao limpar histórico', error);
+        }
     };
 
     const handleSendMessage = async (text: string) => {
@@ -213,6 +213,12 @@ const App: React.FC = () => {
                     : convo
             )
         );
+
+        try {
+            await saveMessageToDb(activeConversationId, 'user', text);
+        } catch (error) {
+            console.error('Falha ao salvar mensagem do usuário', error);
+        }
     
         if (isFirstMessage) {
             setConversations(prev =>
@@ -228,6 +234,7 @@ const App: React.FC = () => {
                         convo.id === activeConversationId ? { ...convo, title: newTitle } : convo
                     )
                 );
+                await updateConversationTitle(activeConversationId, newTitle);
             } catch (error) {
                 console.error("Falha ao gerar título, usando fallback:", error);
                 const fallbackTitle = text.substring(0, 35) + (text.length > 35 ? '...' : '');
@@ -236,6 +243,11 @@ const App: React.FC = () => {
                         convo.id === activeConversationId ? { ...convo, title: fallbackTitle } : convo
                     )
                 );
+                try {
+                    await updateConversationTitle(activeConversationId, fallbackTitle);
+                } catch (titleError) {
+                    console.error('Falha ao persistir título da conversa', titleError);
+                }
             }
         }
     
@@ -249,6 +261,7 @@ const App: React.FC = () => {
                         : convo
                 )
             );
+            await saveMessageToDb(activeConversationId, 'assistant', responseContent);
         } catch (error) {
             const errorMessageContent = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
             const errorMessage: Message = { role: 'error', content: errorMessageContent };
@@ -273,18 +286,23 @@ const App: React.FC = () => {
     const activeConversation = conversations.find(c => c.id === activeConversationId);
 
     return (
-        <div className="flex h-screen bg-gradient-to-br from-[#1e103d] to-[#1b1429] text-white font-sans">
+        <div className="flex flex-col md:flex-row h-screen overflow-hidden w-full bg-gradient-to-br from-[#1e103d] to-[#1b1429] text-white font-sans">
             <Sidebar 
                 user={currentUser}
                 allUsers={allUsers}
                 conversations={conversations}
                 activeConversationId={activeConversationId}
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
                 onNewConversation={handleNewConversation}
                 onSelectConversation={handleSelectConversation}
                 onDeleteConversation={handleDeleteConversation}
                 onSwitchUser={handleSwitchUser}
                 onLogout={handleLogout}
-                onOpenSettings={() => setIsSettingsModalVisible(true)}
+                onOpenSettings={() => {
+                    setIsSettingsModalVisible(true);
+                    setIsSidebarOpen(false);
+                }}
             />
             {activeConversation && (
                 <ChatInterface
@@ -292,17 +310,10 @@ const App: React.FC = () => {
                     messages={activeConversation.messages}
                     onSendMessage={handleSendMessage}
                     userName={currentUser.name}
+                    onOpenMenu={() => setIsSidebarOpen(true)}
+                    onOpenFeedback={() => setIsGabiVisible(true)}
                 />
-            )}
-
-            <button
-                onClick={() => setIsGabiVisible(true)}
-                className="fixed bottom-6 right-6 w-16 h-16 bg-pink-600 rounded-full shadow-lg flex items-center justify-center hover:bg-pink-700 transition-transform duration-200 active:scale-95 z-40"
-                aria-label="Abrir assistente de feedback Gabi"
-            >
-                <GabiTriggerIcon />
-            </button>
-            
+            )} 
             {switchingUser && (
                 <PasswordPromptModal 
                     user={switchingUser}
@@ -315,7 +326,7 @@ const App: React.FC = () => {
             {isGabiVisible && (
                 <GabiAssistantModal 
                     onClose={() => setIsGabiVisible(false)}
-                    onSubmit={handleSubmitFeedback}
+                    userId={currentUser.id}
                 />
             )}
 

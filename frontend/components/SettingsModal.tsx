@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../hooks/useTranslations';
+import ConfirmModal from './ConfirmModal';
 
 interface SettingsModalProps {
     onClose: () => void;
@@ -17,16 +18,20 @@ const SettingsIcon = () => (
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onClearHistory }) => {
     const { language, setLanguage } = useLanguage();
     const t = useTranslations();
+    const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
 
     const handleClearClick = () => {
-        if (window.confirm(t('clearHistoryConfirmation'))) {
-            onClearHistory();
-        }
+        setIsClearHistoryModalOpen(true);
+    };
+
+    const handleConfirmClearHistory = () => {
+        setIsClearHistoryModalOpen(false);
+        onClearHistory();
     };
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out]">
-            <div className="w-full max-w-lg p-8 space-y-6 bg-[#251544] rounded-xl shadow-lg border border-white/10">
+            <div className="w-full max-w-lg mx-4 p-6 sm:p-8 space-y-6 bg-[#251544] rounded-xl shadow-lg border border-white/10 max-h-[90vh] overflow-y-auto">
                 <div className="text-center">
                     <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-violet-900/50 flex items-center justify-center">
                         <SettingsIcon />
@@ -84,6 +89,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onClearHistory }
                     </button>
                 </div>
             </div>
+            <ConfirmModal
+                isOpen={isClearHistoryModalOpen}
+                title={t('clearHistoryTitle')}
+                message={t('clearHistoryConfirmation')}
+                confirmText={t('clearHistoryConfirmButton')}
+                cancelText={t('cancelButton')}
+                onConfirm={handleConfirmClearHistory}
+                onCancel={() => setIsClearHistoryModalOpen(false)}
+            />
         </div>
     );
 };

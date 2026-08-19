@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import type { User } from '../types';
 import { useTranslations } from '../hooks/useTranslations';
+import { loginUser } from '../services/api';
+
+const authInputClassName =
+    'peer w-full bg-[#1b1429] border border-violet-700 text-white rounded-lg px-4 py-3 outline-none focus:border-pink-600 focus:ring-1 focus:ring-pink-600 transition-colors shadow-none [&:-webkit-autofill]:shadow-[0_0_0px_1000px_#1b1429_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:transition-colors [&:-webkit-autofill]:duration-[5000s]';
 
 interface LoginScreenProps {
     onLoginSuccess: (user: User) => void;
@@ -11,9 +15,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onSwitchToReg
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const t = useTranslations();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
@@ -22,23 +27,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onSwitchToReg
             return;
         }
 
+        setIsSubmitting(true);
         try {
-            const users = JSON.parse(localStorage.getItem('netoia-users') || '{}');
-            const user = users[email];
-
-            if (user && user.passwordHash === password) { 
-                onLoginSuccess(user);
-            } else {
-                setError(t('invalidCredentialsError'));
-            }
+            const user = await loginUser(email, password);
+            onLoginSuccess(user);
         } catch (err) {
-            setError(t('loginError'));
+            setError(t('invalidCredentialsError'));
             console.error(err);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="flex items-center justify-center h-screen w-screen bg-gradient-to-br from-[#1e103d] to-[#1b1429]">
+        <div className="flex items-center justify-center h-screen w-screen overflow-x-hidden px-4 bg-gradient-to-br from-[#1e103d] to-[#1b1429]">
             <div className="w-full max-w-md p-8 space-y-8 bg-violet-900/40 rounded-xl shadow-lg border border-white/10">
                 <div className="text-center">
                     <h1 className="text-4xl font-bold text-white">
@@ -54,7 +56,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onSwitchToReg
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder=" "
-                            className="block w-full px-4 py-3 text-white bg-transparent border-2 border-violet-700 rounded-lg appearance-none focus:outline-none focus:ring-0 focus:border-pink-500 peer"
+                            className={authInputClassName}
                         />
                         <label
                             htmlFor="email"
@@ -70,7 +72,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onSwitchToReg
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder=" "
-                            className="block w-full px-4 py-3 text-white bg-transparent border-2 border-violet-700 rounded-lg appearance-none focus:outline-none focus:ring-0 focus:border-pink-500 peer"
+                            className={authInputClassName}
                         />
                         <label
                             htmlFor="password"
@@ -83,7 +85,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onSwitchToReg
                     <div>
                         <button
                             type="submit"
-                            className="w-full px-4 py-3 font-semibold text-white bg-pink-600 rounded-lg hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 focus:ring-offset-gray-900 transition-colors"
+                            disabled={isSubmitting}
+                            className="w-full px-4 py-3 font-semibold text-white bg-pink-600 rounded-lg hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 focus:ring-offset-gray-900 transition-colors disabled:opacity-60"
                         >
                             {t('loginButton')}
                         </button>
