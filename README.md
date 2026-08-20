@@ -1,29 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-
 # 🤖 NetoIA - Seu Assistente Digital Paciente
 
-### Apresentado na Expo Tech UniFECAF 2025
-
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
-
+<div align="center">
+  <p><strong>Apresentado na Expo Tech UniFECAF 2025</strong></p>
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
+  <img src="https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white" />
 </div>
 
 ---
 
 ## 📋 Sobre o Projeto
 
-**NetoIA** é um assistente digital inteligente desenvolvido com foco em acessibilidade e facilidade de uso. O sistema utiliza a API Google Gemini para fornecer respostas contextuais e instruções passo a passo, sendo especialmente útil para auxiliar usuários em tarefas do dia a dia no ambiente digital.
+**NetoIA** é um assistente digital inteligente desenvolvido com foco em acessibilidade e facilidade de uso. O sistema utiliza a API Google Gemini para fornecer respostas contextuais e instruções passo a passo, sendo especialmente útil para auxiliar usuários em tarefas do dia a dia no ambiente digital (como idosos ou iniciantes em tecnologia).
 
-O projeto foi criado como trabalho acadêmico para apresentação na **Expo Tech UniFECAF 2025**, demonstrando a integração de tecnologias modernas de IA com interfaces web responsivas e acessíveis.
+O projeto foi criado como trabalho acadêmico para apresentação na **Expo Tech UniFECAF 2025**, demonstrando a integração de tecnologias modernas de IA com interfaces web responsivas, acessíveis e com persistência de dados em nuvem.
 
-### 👥 Equipe de Desenvolvimento
+## 👥 Equipe de Desenvolvimento
 
 | Nome | RA |
-|------|-----|
+| :--- | :--- |
 | **Diego dos Anjos Gomes** | 7961 |
 | **Gustavo Ribeiro Santos** | 90044 |
 | **Ian Meirelles** | 94838 |
@@ -32,226 +29,182 @@ O projeto foi criado como trabalho acadêmico para apresentação na **Expo Tech
 
 ## ✨ Funcionalidades
 
-- 🗣️ **Reconhecimento de Voz**: Faça perguntas usando o microfone
-- 🔊 **Síntese de Voz**: Ouça as respostas em áudio com voz
-- 📝 **Instruções Passo a Passo**: Receba tutoriais visuais detalhados
-- 🌐 **Suporte Multilíngue**: Interface em Português e Inglês
-- 💬 **Histórico de Conversas**: Mantenha e organize suas interações
-- 🎨 **Interface Moderna**: Design responsivo e intuitivo
-- 🖼️ **Descrições Visuais**: Cada passo inclui descrições de imagens ilustrativas
-- 📋 **Copiar Textos**: Copie facilmente instruções e respostas
+* 🗣️ **Reconhecimento de Voz:** Faça perguntas usando o microfone do dispositivo.
+* 🔊 **Síntese de Voz:** Ouça as respostas em áudio com voz natural.
+* 📝 **Instruções Passo a Passo:** Receba tutoriais visuais e detalhados.
+* 🔐 **Contas de Usuário:** Autenticação segura e isolamento de dados (cada usuário vê apenas o seu histórico).
+* 💬 **Histórico Salvo em Nuvem:** Conversas persistidas com segurança em banco de dados.
+* 🛡️ **Foco Protegido:** A IA é programada para responder **apenas** sobre tecnologia, recusando desvios de assunto.
+* 🔄 **Fallback de Modelos:** Rotação automática de modelos de IA para garantir disponibilidade.
 
 ---
 
-## 🚀 Tecnologias Utilizadas
+## 🚀 Stack Tecnológica
 
-### Frontend
-- **React 19.1.1** - Biblioteca JavaScript para construção de interfaces
-- **TypeScript 5.8.2** - Superset JavaScript com tipagem estática
-- **Vite 6.2.0** - Build tool e servidor de desenvolvimento rápido
+O projeto adota uma arquitetura Fullstack dividida em duas aplicações:
 
-### Inteligência Artificial
-- **Google Gemini API (@google/genai 1.21.0)** - Modelo de IA generativa para processamento de linguagem natural
-- **Web Speech API** - Reconhecimento e síntese de voz nativa do navegador
+### Frontend (`/frontend`)
+* **React 19 & TypeScript:** Construção da interface.
+* **Vite 6:** Build tool ultra-rápida.
+* **Tailwind CSS:** Estilização responsiva.
+* **Google Gemini API SDK:** Comunicação via `@google/genai`.
+* **Web Speech API:** Reconhecimento e síntese de voz nativa.
 
-### Recursos Nativos
-- **SpeechRecognition API** - Captura de entrada de voz
-- **SpeechSynthesis API** - Conversão de texto em fala
-- **LocalStorage** - Persistência de conversas no navegador
-
-### Estrutura do Projeto
-```
-NetoIA/
-├── components/          # Componentes React reutilizáveis
-│   ├── ChatInterface.tsx
-│   ├── Header.tsx
-│   ├── InputBar.tsx
-│   ├── MessageBubble.tsx
-│   ├── Sidebar.tsx
-│   └── SettingsModal.tsx
-├── contexts/           # Contextos React (Estado Global)
-│   └── LanguageContext.tsx
-├── hooks/              # Custom Hooks
-│   ├── useSpeech.ts
-│   └── useTranslations.ts
-├── services/           # Integração com APIs externas
-│   └── geminiService.ts
-├── utils/              # Utilitários e traduções
-│   └── translations.ts
-├── types.ts            # Definições de tipos TypeScript
-└── App.tsx             # Componente principal
-```
+### Backend (`/backend`)
+* **NestJS 11:** Framework Node.js robusto para a API REST.
+* **Prisma ORM:** Gerenciamento do banco de dados.
+* **PostgreSQL:** Banco de dados relacional (hospedado no Supabase).
+* **JWT & Scrypt:** Autenticação e criptografia de senhas.
 
 ---
 
-## 🛠️ Como Configurar e Executar
+## 🛠️ Como Configurar e Executar Localmente
 
 ### Pré-requisitos
+* Node.js (versão 18 ou superior)
+* Banco de dados PostgreSQL rodando (ou conta no Supabase)
+* Chave de API do Google AI Studio
 
-- **Node.js** (versão 16 ou superior)
-- **npm** ou **yarn**
-- **Chave de API do Google Gemini**
-
-### Passo 1: Obter a Chave API do Google Gemini
-
-1. Acesse [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Faça login com sua conta Google
-3. Clique em **"Create API Key"** (Criar chave de API)
-4. Copie a chave gerada
-
-### Passo 2: Clonar o Repositório
-
+### 1. Clonar o Repositório
 ```bash
-git clone https://github.com/seu-usuario/Neto_IA.git
-cd Neto_IA
+git clone https://github.com/Diego-Anjos/Projeto_Neto_IA.git
+cd Projeto_Neto_IA
 ```
 
-### Passo 3: Instalar Dependências
+### 2. Configurar o Backend
 
 ```bash
+cd backend
 npm install
 ```
 
-### Passo 4: Configurar Variáveis de Ambiente
-
-1. Crie um arquivo `.env` na raiz do projeto
-2. Adicione sua chave API:
+Crie o arquivo `backend/.env` com as variáveis abaixo:
 
 ```env
-GEMINI_API_KEY=sua-chave-api-aqui
+DATABASE_URL="postgresql://USUARIO:SENHA@HOST:5432/postgres"
+PORT=3000
+JWT_SECRET="uma-chave-secreta-com-pelo-menos-16-caracteres"
+CORS_ORIGIN="http://localhost:5173"
 ```
 
-> **Nota**: Você pode adicionar múltiplas chaves separadas por vírgula para rotação automática:
+Em seguida, gere o cliente Prisma e inicie a API:
+
+```bash
+npx prisma generate
+npm run start:dev
+```
+
+A API ficará disponível em **http://localhost:3000**.
+
+### 3. Configurar o Frontend
+
+Em outro terminal:
+
+```bash
+cd frontend
+npm install
+```
+
+Crie o arquivo `frontend/.env`:
+
+```env
+VITE_GEMINI_API_KEY=sua-chave-api-aqui
+VITE_API_URL=http://localhost:3000
+```
+
+> **Nota:** Você pode adicionar várias chaves do Gemini separadas por vírgula para rotação automática:
 > ```env
-> GEMINI_API_KEY=chave1,chave2,chave3
+> VITE_GEMINI_API_KEY=chave1,chave2,chave3
 > ```
 
-### Passo 5: Executar o Projeto
+Obtenha a chave em [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+Inicie o frontend:
 
 ```bash
 npm run dev
 ```
 
-O aplicativo estará disponível em: **http://localhost:3000**
+O aplicativo estará disponível em **http://localhost:5173**.
 
-### Passo 6: Build para Produção
+### 4. Build para Produção
+
+**Backend:**
 
 ```bash
+cd backend
+npm run build
+npm run start:prod
+```
+
+**Frontend:**
+
+```bash
+cd frontend
 npm run build
 ```
 
-Os arquivos otimizados serão gerados na pasta `dist/`
+Os arquivos otimizados do frontend serão gerados em `frontend/dist/`.
 
 ---
 
 ## 🎯 Como Usar
 
-### 1. Fazer uma Pergunta
+### 1. Criar conta ou entrar
+Cadastre-se ou faça login para que o histórico fique associado à sua conta.
 
-- **Por Texto**: Digite sua pergunta no campo de entrada e pressione Enter
-- **Por Voz**: Clique no ícone do microfone e fale sua pergunta
+### 2. Fazer uma pergunta
+- **Por texto:** digite no campo de entrada e pressione Enter.
+- **Por voz:** clique no ícone do microfone e fale.
 
-### 2. Receber Respostas
+### 3. Receber respostas
+As respostas aparecem em formato de chat. Instruções complexas são exibidas em passos numerados, com descrição visual.
 
-- As respostas aparecem em formato de chat
-- Instruções complexas são exibidas em passos numerados
-- Cada passo inclui descrição visual e texto explicativo
+### 4. Ouvir respostas
+Clique no ícone de alto-falante ao lado das mensagens para ouvir o conteúdo.
 
-### 3. Ouvir Respostas
-
-- Clique no ícone de alto-falante (🔊) ao lado das mensagens
-- O sistema lerá o conteúdo em voz alta
-- Use o botão de pausa para controlar a reprodução
-
-### 4. Gerenciar Conversas
-
-- **Nova Conversa**: Clique no botão "+ Nova Conversa"
-- **Histórico**: Acesse conversas anteriores na barra lateral
-- **Configurações**: Altere idioma e preferências no menu de configurações
-
-### 5. Copiar Conteúdo
-
-- Use o botão de copiar (📋) para copiar textos de instruções
-- Copie passos individuais ou mensagens completas
-
----
-
-## 🌟 Funcionalidades Técnicas Detalhadas
-
-### Sistema de Rotação de Chaves API
-
-O sistema implementa rotação automática entre múltiplas chaves API do Google Gemini, garantindo:
-- **Alta disponibilidade**: Troca automática em caso de limite de quota
-- **Balanceamento**: Distribuição equilibrada de requisições
-- **Resiliência**: Continuidade do serviço mesmo com falhas pontuais
-
-### Geração de Instruções Estruturadas
-
-Utiliza **structured output** do Gemini para gerar:
-- Passos numerados e organizados
-- Descrições de imagens para cada etapa
-- Formato JSON validado e tipado
-
-### Síntese de Voz Otimizada
-
-- Priorização de vozes femininas em português
-- Controle de velocidade e entonação
-- Gerenciamento de estado centralizado (singleton pattern)
-- Suporte a pausa/retomada da leitura
-
-### Persistência de Dados
-
-- Armazenamento local de conversas
-- Sincronização automática com LocalStorage
-- Recuperação de contexto entre sessões
+### 5. Gerenciar conversas
+Crie novas conversas, volte ao histórico na barra lateral e ajuste idioma e preferências nas configurações.
 
 ---
 
 ## 🔒 Segurança e Privacidade
 
-- ✅ Chaves API armazenadas apenas em variáveis de ambiente
-- ✅ Conversas armazenadas localmente no navegador do usuário
-- ✅ Nenhum dado enviado para servidores próprios
-- ✅ Comunicação direta com API Google via HTTPS
+* Senhas são armazenadas com **Scrypt**, nunca em texto puro.
+* Acesso à API autenticado por **JWT**.
+* Cada usuário acessa apenas as próprias conversas.
+* Chaves de API e `JWT_SECRET` ficam apenas em variáveis de ambiente (não versionadas).
 
 ---
 
 ## 📱 Compatibilidade
 
-### Navegadores Suportados
-
-- ✅ Google Chrome (recomendado)
-- ✅ Microsoft Edge
-- ✅ Safari (iOS 15+)
-- ⚠️ Firefox (reconhecimento de voz limitado)
+### Navegadores suportados
+* Google Chrome (recomendado)
+* Microsoft Edge
+* Safari (iOS 15+)
+* Firefox (reconhecimento de voz limitado)
 
 ### Dispositivos
-
-- 💻 Desktop (Windows, macOS, Linux)
-- 📱 Mobile (Android, iOS)
-- 📟 Tablets
+* Desktop (Windows, macOS, Linux)
+* Mobile (Android, iOS)
+* Tablets
 
 ---
 
 ## 🐛 Solução de Problemas
 
-### Erro: "Nenhuma chave de API do Google foi configurada"
+### Erro: chave da API Gemini não configurada
+Verifique se `frontend/.env` existe e contém `VITE_GEMINI_API_KEY`.
 
-**Solução**: Verifique se o arquivo `.env` existe e contém `GEMINI_API_KEY=sua-chave`
+### Erro: `JWT_SECRET` inválida
+O backend exige `JWT_SECRET` com pelo menos 16 caracteres em `backend/.env`.
 
-### Áudio não funciona
+### API indisponível no frontend
+Confirme se o NestJS está rodando na porta 3000 e se `VITE_API_URL` aponta para essa URL.
 
-**Solução**: 
-1. Verifique se deu permissão de áudio no navegador
-2. Confirme que o dispositivo de áudio está ligado e selecionado
-3. Teste em modo de navegação anônima (pode haver extensões bloqueando)
-
-### Reconhecimento de voz não responde
-
-**Solução**:
-1. Verifique permissões de microfone no navegador
-2. Teste com outro navegador (Chrome recomendado)
-3. Certifique-se de que o microfone está funcionando
+### Áudio ou microfone não funcionam
+Permita acesso ao microfone/áudio no navegador. O Chrome costuma ter o melhor suporte à Web Speech API.
 
 ---
 
@@ -261,18 +214,12 @@ Este projeto foi desenvolvido para fins acadêmicos como parte da **Expo Tech Un
 
 ---
 
-## 🤝 Contribuições
-
-Este é um projeto acadêmico, mas sugestões e feedback são bem-vindos!
-
----
-
 ## 📞 Contato
 
-**Instituição**: UniFECAF  
-**Evento**: Expo Tech 2025  
-**Curso**: Gestão Tecnologia da Informação  
-**Ano**: 2025
+**Instituição:** UniFECAF  
+**Evento:** Expo Tech 2025  
+**Curso:** Gestão Tecnologia da Informação  
+**Ano:** 2025
 
 ---
 
