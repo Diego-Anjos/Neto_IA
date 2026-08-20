@@ -1,45 +1,51 @@
 # =========================
-# Dependências
+# DEPENDÊNCIAS
 # =========================
 node_modules/
-.pnp
-.pnp.js
+/frontend/node_modules/
+/backend/node_modules/
 
 # =========================
-# Variáveis de Ambiente
+# VARIÁVEIS DE AMBIENTE (CRÍTICO)
 # =========================
 .env
 .env.*
 !.env.example
+/frontend/.env
+/frontend/.env.*
+/backend/.env
+/backend/.env.*
 
 # =========================
-# Builds e Logs
+# BUILD E PRODUÇÃO
 # =========================
 dist/
 build/
-out/
-logs
-*.log
+/frontend/dist/
+/backend/dist/
+
+# =========================
+# LOGS E DEBUG
+# =========================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+.pnpm-debug.log*
 
 # =========================
-# IDEs, Editores e OS
+# ARQUIVOS DO SISTEMA OPERACIONAL
 # =========================
-.vscode/*
-!.vscode/extensions.json
-.idea/
 .DS_Store
+Thumbs.db
+
+# =========================
+# EDITOR E IDE
+# =========================
+.vscode/
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# =========================
-# Ferramentas de IA (Cursor/Windsurf)
-# =========================
-.agents/
-.claude/
-.windsurf/
