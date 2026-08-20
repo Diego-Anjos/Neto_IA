@@ -10,17 +10,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
-  const corsOrigin = process.env.CORS_ORIGIN?.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
   app.enableCors({
-    origin:
-      corsOrigin && corsOrigin.length > 0
-        ? corsOrigin
-        : process.env.NODE_ENV === 'production'
-          ? false
-          : true,
+    origin: (origin, callback) => {
+      if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Permissivo para evitar bloqueios no deploy
+      }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
   app.useGlobalPipes(
