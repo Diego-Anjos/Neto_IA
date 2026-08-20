@@ -11,16 +11,19 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin || origin.includes('vercel.app') || origin.includes('localhost')) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissivo para evitar bloqueios no deploy
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin || origin.endsWith('.vercel.app') || origin.includes('localhost')) {
+        return callback(null, true);
       }
+      const allowed = process.env.CORS_ORIGIN;
+      if (allowed && (allowed === '*' || allowed === origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
+    credentials: true,
   });
 
   app.useGlobalPipes(
