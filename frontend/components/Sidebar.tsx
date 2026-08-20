@@ -43,7 +43,6 @@ const ChevronUpIcon = () => (
 
 interface SidebarProps {
     user: User;
-    allUsers: User[];
     conversations: Conversation[];
     activeConversationId: string | null;
     isOpen: boolean;
@@ -51,12 +50,11 @@ interface SidebarProps {
     onNewConversation: () => void;
     onSelectConversation: (id: string) => void;
     onDeleteConversation: (id: string) => void;
-    onSwitchUser: (user: User) => void;
     onLogout: () => void;
     onOpenSettings: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, activeConversationId, isOpen, onClose, onNewConversation, onSelectConversation, onDeleteConversation, onSwitchUser, onLogout, onOpenSettings }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, conversations, activeConversationId, isOpen, onClose, onNewConversation, onSelectConversation, onDeleteConversation, onLogout, onOpenSettings }) => {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
@@ -91,11 +89,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
     const handleCancelDelete = () => {
         setIsDeleteModalOpen(false);
         setConversationToDelete(null);
-    };
-
-    const handleSwitch = (userToSwitch: User) => {
-        onSwitchUser(userToSwitch);
-        setIsUserMenuOpen(false);
     };
 
     const handleLogoutAndClose = () => {
@@ -185,28 +178,15 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
             
             <div className="mt-auto pt-4 border-t border-white/10 relative" ref={menuRef}>
                  <div className={`absolute bottom-full mb-2 w-full bg-[#2a1a49] rounded-lg shadow-2xl border border-white/10 p-2 transition-all duration-200 ease-out ${isUserMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
-                        <div className="text-xs text-gray-400 px-2 py-1 font-semibold">{t('accounts')}</div>
-                        {allUsers.map((u) => (
-                            <button
-                                key={u.email}
-                                onClick={() => handleSwitch(u)}
-                                disabled={u.email === user.email}
-                                className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-violet-600 transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
-                            >
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${u.email === user.email ? 'bg-pink-600' : 'bg-violet-600'}`}>
-                                    {u.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <div className="text-sm font-medium text-white truncate">{u.name}</div>
-                                    <div className="text-xs text-gray-400 truncate">{u.email}</div>
-                                </div>
-                                {u.email === user.email && (
-                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-pink-400 flex-shrink-0">
-                                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clipRule="evenodd" />
-                                     </svg>
-                                )}
-                            </button>
-                        ))}
+                        <div className="flex items-center gap-3 p-2">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white bg-pink-600 flex-shrink-0">
+                                {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <div className="text-sm font-medium text-white truncate">{user.name}</div>
+                                <div className="text-xs text-gray-400 truncate">{user.email}</div>
+                            </div>
+                        </div>
                         <div className="border-t border-white/10 my-1"></div>
                         <button onClick={() => { onOpenSettings(); setIsUserMenuOpen(false); }} className="w-full flex items-center gap-3 text-left p-2 rounded-md hover:bg-violet-600 transition-colors text-gray-300">
                             <SettingsIcon />

@@ -16,7 +16,6 @@ export const translations = {
         deleteButton: 'Excluir',
         attentionTitle: 'Atenção',
         understoodButton: 'Entendi',
-        accounts: 'Contas cadastradas',
         settings: 'Configurações',
         logout: 'Sair',
         // ChatInterface & WelcomeScreen
@@ -73,11 +72,6 @@ export const translations = {
         registerAndLoginButton: 'Cadastrar e Entrar',
         alreadyHaveAccount: 'Já tem uma conta?',
         login: 'Faça login',
-        // PasswordPromptModal
-        switchToUserTitle: 'Mudar para {userName}',
-        passwordPromptInstruction: 'Para sua segurança, por favor, insira a senha da conta.',
-        incorrectPasswordError: 'Senha incorreta. Por favor, tente novamente.',
-        confirmButton: 'Confirmar',
         cancelButton: 'Cancelar',
         // GabiAssistantModal
         gabiTitle: 'Fale com a Gabi',
@@ -164,7 +158,6 @@ Sua Resposta: Aumentar Letra do Computador`
         deleteButton: 'Eliminar',
         attentionTitle: 'Atención',
         understoodButton: 'Entendido',
-        accounts: 'Cuentas registradas',
         settings: 'Configuración',
         logout: 'Salir',
         // ChatInterface & WelcomeScreen
@@ -221,11 +214,6 @@ Sua Resposta: Aumentar Letra do Computador`
         registerAndLoginButton: 'Registrarse y Entrar',
         alreadyHaveAccount: '¿Ya tienes una cuenta?',
         login: 'Inicia sesión',
-        // PasswordPromptModal
-        switchToUserTitle: 'Cambiar a {userName}',
-        passwordPromptInstruction: 'Por tu seguridad, por favor, introduce la contraseña de la cuenta.',
-        incorrectPasswordError: 'Contraseña incorrecta. Por favor, inténtalo de nuevo.',
-        confirmButton: 'Confirmar',
         cancelButton: 'Cancelar',
         // GabiAssistantModal
         gabiTitle: 'Habla con Gabi',

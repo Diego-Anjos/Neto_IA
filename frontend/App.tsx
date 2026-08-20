@@ -3,7 +3,6 @@ import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import LoginScreen from './components/LoginScreen';
 import RegistrationScreen from './components/RegistrationScreen';
-import PasswordPromptModal from './components/PasswordPromptModal';
 import GabiAssistantModal from './components/GabiAssistantModal';
 import SettingsModal from './components/SettingsModal';
 import { getInstructionsFromGemini, generateTitleFromQuery } from './services/geminiService';
@@ -15,7 +14,6 @@ import {
     fetchMessages,
     fetchUserConversations,
     getAuthToken,
-    loginUser,
     saveMessageToDb,
     setAuthToken,
     updateConversationTitle,
@@ -30,45 +28,6 @@ const KNOWN_USERS_KEY = 'netoia-known-users';
 
 const isListedAccount = (user: User) =>
     user.email.trim().toLowerCase() !== 'smoke-test@netoia.local';
-
-const parseStoredUsers = (raw: string | null): User[] => {
-    if (!raw) return [];
-
-    try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [];
-
-        return parsed.filter((item): item is User =>
-            Boolean(
-                item &&
-                typeof item.id === 'string' &&
-                typeof item.name === 'string' &&
-                typeof item.email === 'string' &&
-                isListedAccount(item)
-            )
-        );
-    } catch {
-        return [];
-    }
-};
-
-const mergeAccountLists = (...lists: User[][]) => {
-    const byId = new Map<string, User>();
-
-    for (const list of lists) {
-        for (const user of list) {
-            if (isListedAccount(user)) {
-                byId.set(user.id, user);
-            }
-        }
-    }
-
-    return Array.from(byId.values());
-};
-
-const persistKnownUsers = (users: User[]) => {
-    localStorage.setItem(KNOWN_USERS_KEY, JSON.stringify(users));
-};
 
 const replaceLastLoading = (messages: Message[], next: Message): Message[] => {
     let idx = -1;
@@ -94,9 +53,6 @@ const App: React.FC = () => {
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
     const [draftMessages, setDraftMessages] = useState<Message[]>([]);
     const [conversationsError, setConversationsError] = useState('');
-    const [allUsers, setAllUsers] = useState<User[]>([]);
-    const [switchingUser, setSwitchingUser] = useState<User | null>(null);
-    const [switchError, setSwitchError] = useState<string>('');
     const [isGabiVisible, setIsGabiVisible] = useState(false);
     const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -108,11 +64,9 @@ const App: React.FC = () => {
 
     const conversationLoadId = useRef(0);
     const currentUserIdRef = useRef<string | null>(null);
-    const currentUserEmailRef = useRef<string | null>(null);
     const conversationsRef = useRef<Conversation[]>([]);
     const isSendingRef = useRef(false);
     currentUserIdRef.current = currentUser?.id ?? null;
-    currentUserEmailRef.current = currentUser?.email ?? null;
     conversationsRef.current = conversations;
 
     const clearConversationState = useCallback(() => {
@@ -125,8 +79,6 @@ const App: React.FC = () => {
         setIsGabiVisible(false);
         setIsSettingsModalVisible(false);
         setIsSidebarOpen(false);
-        setSwitchingUser(null);
-        setSwitchError('');
         cancelSpeech();
     }, []);
 
@@ -176,8 +128,7 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const restoreSession = async () => {
-            const knownOnDevice = parseStoredUsers(localStorage.getItem(KNOWN_USERS_KEY));
-            setAllUsers(knownOnDevice);
+            localStorage.removeItem(KNOWN_USERS_KEY);
 
             if (!getAuthToken()) {
                 setCurrentUser(null);
@@ -197,9 +148,6 @@ const App: React.FC = () => {
 
                 setCurrentUser(me);
                 localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(me));
-                const accounts = mergeAccountLists(knownOnDevice, [me]);
-                setAllUsers(accounts);
-                persistKnownUsers(accounts);
             } catch (error) {
                 console.error('Falha ao restaurar sessão', error);
                 setAuthToken(null);
@@ -226,11 +174,7 @@ const App: React.FC = () => {
         clearConversationState();
         setCurrentUser(user);
         localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-        setAllUsers(prev => {
-            const next = mergeAccountLists(prev, [user]);
-            persistKnownUsers(next);
-            return next;
-        });
+        localStorage.removeItem(KNOWN_USERS_KEY);
     }, [clearConversationState]);
 
     const handleLogout = useCallback(() => {
@@ -238,6 +182,7 @@ const App: React.FC = () => {
         clearConversationState();
         setCurrentUser(null);
         localStorage.removeItem(CURRENT_USER_KEY);
+        localStorage.removeItem(KNOWN_USERS_KEY);
     }, [clearConversationState]);
 
     useEffect(() => {
@@ -260,32 +205,6 @@ const App: React.FC = () => {
         cancelSpeech();
         await loadMessagesForConversation(id, conversationLoadId.current);
     }, [loadMessagesForConversation]);
-
-    const handleSwitchUser = useCallback((user: User) => {
-        if (currentUserEmailRef.current !== user.email) {
-            setSwitchError('');
-            setSwitchingUser(user);
-        }
-    }, []);
-
-    const handleConfirmSwitch = useCallback(async (password: string) => {
-        if (!switchingUser) return;
-
-        try {
-            const user = await loginUser(switchingUser.email, password);
-            handleLoginSuccess(user);
-            setSwitchingUser(null);
-            setSwitchError('');
-        } catch (error) {
-            console.error('Falha ao trocar de usuário', error);
-            setSwitchError(tRef.current('incorrectPasswordError'));
-        }
-    }, [switchingUser, handleLoginSuccess]);
-
-    const handleCancelSwitch = useCallback(() => {
-        setSwitchingUser(null);
-        setSwitchError('');
-    }, []);
 
     const handleDeleteConversation = useCallback(async (idToDelete: string) => {
         try {
@@ -483,7 +402,6 @@ const App: React.FC = () => {
         <div className="flex flex-col md:flex-row h-screen overflow-hidden w-full bg-gradient-to-br from-[#1e103d] to-[#1b1429] text-white font-sans">
             <Sidebar 
                 user={currentUser}
-                allUsers={allUsers}
                 conversations={conversations}
                 activeConversationId={activeConversationId}
                 isOpen={isSidebarOpen}
@@ -491,7 +409,6 @@ const App: React.FC = () => {
                 onNewConversation={handleNewConversation}
                 onSelectConversation={handleSelectConversation}
                 onDeleteConversation={handleDeleteConversation}
-                onSwitchUser={handleSwitchUser}
                 onLogout={handleLogout}
                 onOpenSettings={handleOpenSettings}
             />
@@ -505,15 +422,6 @@ const App: React.FC = () => {
                 onOpenMenu={handleOpenSidebar}
                 onOpenFeedback={handleOpenFeedback}
             />
-            {switchingUser && (
-                <PasswordPromptModal 
-                    user={switchingUser}
-                    onConfirm={handleConfirmSwitch}
-                    onCancel={handleCancelSwitch}
-                    error={switchError}
-                />
-            )}
-
             {isGabiVisible && (
                 <GabiAssistantModal 
                     onClose={handleCloseFeedback}
