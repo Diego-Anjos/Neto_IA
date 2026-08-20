@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { InstructionStep } from '../types';
-import { useSpeech } from '../hooks/useSpeech';
+import { useTextToSpeech } from '../hooks/useSpeech';
 import { useTranslations } from '../hooks/useTranslations';
+import { getStepIcon } from '../utils/stepIcon';
 
 interface InstructionStepProps {
   step: InstructionStep;
@@ -47,10 +48,11 @@ const CheckIcon: React.FC = () => (
 
 
 const InstructionStepComponent: React.FC<InstructionStepProps> = ({ step }) => {
-  const { speak, pause, resume, speechStatus, currentText } = useSpeech(() => {});
+  const { speak, pause, resume, speechStatus, currentText } = useTextToSpeech();
   const [isImageVisible, setIsImageVisible] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const t = useTranslations();
+  const StepIcon = getStepIcon(step);
 
   const isThisSpeaking = currentText === step.text && (speechStatus === 'speaking' || speechStatus === 'paused');
 
@@ -103,12 +105,13 @@ const InstructionStepComponent: React.FC<InstructionStepProps> = ({ step }) => {
             </div>
 
             {isImageVisible && (
-                <div className="mt-4 rounded-lg overflow-hidden border border-white/10 relative group/image">
-                    <img 
-                      src={`https://picsum.photos/seed/${encodeURIComponent(step.image_description)}/512/256`} 
-                      alt={step.image_description}
-                      className="w-full h-auto object-cover block animate-[fadeIn_0.3s_ease-out]"
-                    />
+                <div className="mt-4 rounded-lg overflow-hidden border border-white/10 bg-white/5 relative group/image animate-[fadeIn_0.3s_ease-out]">
+                    <div className="flex flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+                        <StepIcon className="w-24 h-24 text-pink-400" strokeWidth={1.5} aria-hidden="true" />
+                        {step.image_description && (
+                            <p className="text-base text-white/80 max-w-md break-words">{step.image_description}</p>
+                        )}
+                    </div>
                     <button 
                         onClick={() => setIsImageVisible(false)}
                         className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/80 transition-opacity opacity-0 group-hover/image:opacity-100"
@@ -130,4 +133,4 @@ const InstructionStepComponent: React.FC<InstructionStepProps> = ({ step }) => {
   );
 };
 
-export default InstructionStepComponent;
+export default React.memo(InstructionStepComponent);

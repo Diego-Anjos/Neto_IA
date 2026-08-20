@@ -48,14 +48,17 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ userName }) => {
 
 
 interface ChatInterfaceProps {
+    conversationId: string | null;
     messages: Message[];
     onSendMessage: (text: string) => void;
     userName: string;
+    isSending: boolean;
+    notice?: string;
     onOpenMenu: () => void;
     onOpenFeedback: () => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, userName, onOpenMenu, onOpenFeedback }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ conversationId, messages, onSendMessage, userName, isSending, notice, onOpenMenu, onOpenFeedback }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const t = useTranslations();
 
@@ -82,21 +85,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
                     Neto<span className="text-pink-400">IA</span>
                 </h1>
             </div>
+            {notice && (
+                <p className="px-4 py-2 text-sm text-red-300 bg-red-900/30 border-b border-red-500/30 flex-shrink-0" role="alert">
+                    {notice}
+                </p>
+            )}
             <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
                 {messages.length === 0 ? (
                     <WelcomeScreen userName={userName} />
                 ) : (
                     messages.map((msg, index) => (
-                        <MessageBubble key={index} message={msg} />
+                        <MessageBubble key={msg.id ?? `${msg.role}-${index}`} message={msg} />
                     ))
                 )}
                 <div ref={messagesEndRef} />
             </div>
             <div className="p-3 sm:p-4 md:p-6 pt-2 flex-shrink-0">
-                <InputBar onSendMessage={onSendMessage} onOpenFeedback={onOpenFeedback} />
+                <InputBar key={conversationId ?? 'new'} onSendMessage={onSendMessage} onOpenFeedback={onOpenFeedback} disabled={isSending} />
             </div>
         </main>
     );
 };
 
-export default ChatInterface;
+export default React.memo(ChatInterface);

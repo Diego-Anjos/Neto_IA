@@ -1,11 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  hashPassword,
+  isHashedPassword,
+  verifyPassword,
+} from '../auth/password';
 import { PrismaService } from '../prisma/prisma.service';
-
-export type AuthUserPayload = {
-  email: string;
-  password: string;
-  name?: string;
-};
+import type { AuthDto } from './dto/auth.dto';
 
 const publicUserSelect = {
   id: true,
@@ -19,22 +19,23 @@ const publicUserSelect = {
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    return this.prisma.user.findMany({
-      select: publicUserSelect,
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  async auth({ email, password, name }: AuthUserPayload) {
+  async auth({ email, password, name }: AuthDto) {
     const normalizedEmail = email.trim().toLowerCase();
     const existing = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
 
     if (existing) {
-      if (existing.passwordHash !== password) {
+      const matches = await verifyPassword(password, existing.passwordHash);
+      if (!matches) {
         throw new UnauthorizedException('Credenciais inválidas.');
+      }
+
+      if (!isHashedPassword(existing.passwordHash)) {
+        await this.prisma.user.update({
+          where: { id: existing.id },
+          data: { passwordHash: await hashPassword(password) },
+        });
       }
 
       return {
@@ -46,15 +47,13 @@ export class UsersService {
       };
     }
 
-    const created = await this.prisma.user.create({
+    return this.prisma.user.create({
       data: {
         email: normalizedEmail,
-        passwordHash: password,
+        passwordHash: await hashPassword(password),
         name: name?.trim() || normalizedEmail.split('@')[0],
       },
       select: publicUserSelect,
     });
-
-    return created;
   }
 }

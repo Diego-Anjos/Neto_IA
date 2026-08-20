@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSpeech } from '../hooks/useSpeech';
 import { useTranslations } from '../hooks/useTranslations';
 import ConfirmModal from './ConfirmModal';
@@ -6,6 +6,7 @@ import ConfirmModal from './ConfirmModal';
 interface InputBarProps {
   onSendMessage: (text: string) => void;
   onOpenFeedback: () => void;
+  disabled?: boolean;
 }
 
 const MicrophoneIcon: React.FC<{ isListening: boolean }> = ({ isListening }) => (
@@ -38,22 +39,26 @@ const FeedbackIcon: React.FC = () => (
 );
 
 const roundButtonClassName =
-    'w-14 h-14 min-w-14 min-h-14 bg-pink-600 rounded-full transition-transform duration-200 hover:bg-pink-700 active:scale-95 disabled:opacity-50 disabled:bg-pink-800 flex items-center justify-center flex-shrink-0';
+    'w-14 h-14 min-w-14 min-h-14 rounded-full transition-transform duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center flex-shrink-0';
 
-const InputBar: React.FC<InputBarProps> = ({ onSendMessage, onOpenFeedback }) => {
+const InputBar: React.FC<InputBarProps> = ({ onSendMessage, onOpenFeedback, disabled = false }) => {
   const [inputValue, setInputValue] = useState('');
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const textBeforeListeningRef = useRef('');
   const t = useTranslations();
 
   const handleTranscript = useCallback((transcript: string) => {
-    setInputValue(transcript);
-    if (transcript.trim()) {
-      onSendMessage(transcript);
-      setInputValue('');
-    }
-  }, [onSendMessage]);
+    const prefix = textBeforeListeningRef.current;
+    setInputValue(prefix ? `${prefix}${transcript}` : transcript);
+  }, []);
 
-  const { isListening, startListening, isSpeechSupported, error } = useSpeech(handleTranscript);
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    clearError,
+    error,
+  } = useSpeech(handleTranscript);
 
   useEffect(() => {
       if (error) {
@@ -61,16 +66,31 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, onOpenFeedback }) =>
       }
   }, [error]);
 
+  useEffect(() => {
+      if (disabled && isListening) {
+          stopListening();
+      }
+  }, [disabled, isListening, stopListening]);
+
   const handleCloseErrorModal = () => {
       setIsErrorModalOpen(false);
+      clearError();
+  };
+
+  const handleToggleListening = async () => {
+    if (isListening) {
+      stopListening();
+      return;
+    }
+    textBeforeListeningRef.current = inputValue.trim() ? `${inputValue.trim()} ` : '';
+    await startListening();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputValue.trim()) {
-      onSendMessage(inputValue);
-      setInputValue('');
-    }
+    if (disabled || !inputValue.trim()) return;
+    onSendMessage(inputValue);
+    setInputValue('');
   };
 
   return (
@@ -82,40 +102,51 @@ const InputBar: React.FC<InputBarProps> = ({ onSendMessage, onOpenFeedback }) =>
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={t('inputPlaceholder')}
-                className="w-full pl-4 sm:pl-5 pr-14 py-3 sm:py-4 text-base bg-violet-900/50 text-white placeholder-gray-400 border border-violet-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                disabled={disabled}
+                className={`w-full pl-4 sm:pl-5 pr-14 py-3 sm:py-4 text-base bg-violet-900/50 text-white placeholder-gray-400 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 ${
+                    isListening ? 'border-red-400 ring-2 ring-red-400/40' : 'border-violet-700'
+                }`}
                 aria-label={t('inputPlaceholder')}
             />
             <button
                 type="submit"
                 className="absolute inset-y-0 right-0 flex items-center justify-center w-12 text-violet-300 hover:text-pink-400 transition-colors disabled:opacity-50"
-                disabled={!inputValue.trim()}
+                disabled={disabled || !inputValue.trim()}
                 aria-label={t('sendButtonLabel')}
             >
                 <SendIcon />
             </button>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-            {isSpeechSupported && (
-                <button
-                    type="button"
-                    onClick={startListening}
-                    disabled={isListening}
-                    className={roundButtonClassName}
-                    aria-label={isListening ? t('recordingVoiceButtonLabel') : t('recordVoiceButtonLabel')}
-                >
-                    <MicrophoneIcon isListening={isListening} />
-                </button>
-            )}
+            <button
+                type="button"
+                onClick={handleToggleListening}
+                disabled={disabled}
+                className={`${roundButtonClassName} ${
+                    isListening
+                        ? 'bg-red-600 hover:bg-red-700 animate-pulse ring-4 ring-red-400/50'
+                        : 'bg-pink-600 hover:bg-pink-700'
+                }`}
+                aria-label={isListening ? t('recordingVoiceButtonLabel') : t('recordVoiceButtonLabel')}
+                aria-pressed={isListening}
+            >
+                <MicrophoneIcon isListening={isListening} />
+            </button>
             <button
                 type="button"
                 onClick={onOpenFeedback}
-                className={roundButtonClassName}
+                className={`${roundButtonClassName} bg-pink-600 hover:bg-pink-700`}
                 aria-label={t('openFeedback')}
             >
                 <FeedbackIcon />
             </button>
         </div>
       </form>
+      {isListening && (
+        <p className="mt-2 text-sm text-red-300" aria-live="polite">
+          {t('listeningHint')}
+        </p>
+      )}
       <ConfirmModal
         isOpen={isErrorModalOpen && Boolean(error)}
         title={t('attentionTitle')}

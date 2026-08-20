@@ -5,10 +5,9 @@ import { sendFeedback } from '../services/api';
 
 interface GabiAssistantModalProps {
     onClose: () => void;
-    userId?: string;
 }
 
-const GabiAssistantModal: React.FC<GabiAssistantModalProps> = ({ onClose, userId }) => {
+const GabiAssistantModal: React.FC<GabiAssistantModalProps> = ({ onClose }) => {
     const [feedback, setFeedback] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -24,7 +23,7 @@ const GabiAssistantModal: React.FC<GabiAssistantModalProps> = ({ onClose, userId
         setErrorMessage('');
 
         try {
-            await sendFeedback(message, userId);
+            await sendFeedback(message);
             setIsSuccess(true);
         } catch (error) {
             console.error('Falha ao enviar feedback', error);

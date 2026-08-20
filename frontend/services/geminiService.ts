@@ -2,6 +2,21 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { translations, type Language } from '../utils/translations';
 import type { InstructionStep } from '../types';
 
+/**
+ * Active 3.x models, tried in this order. Older 2.x IDs return 404.
+ */
+const GEMINI_MODELS = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+] as const;
+
+type GeminiModel = (typeof GEMINI_MODELS)[number];
+
+const FALLBACK_DELAY_MS = 1500;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Helper to safely get and parse API keys from environment variables.
 const getApiKeys = (): string[] => {
     const apiKeysString = import.meta.env.VITE_GEMINI_API_KEY;
@@ -16,6 +31,24 @@ const getApiKeys = (): string[] => {
 // Initialize keys and the index to track the last used key.
 let apiKeys = getApiKeys();
 let currentApiKeyIndex = 0;
+
+const isQuotaOrOverloadError = (error: unknown): boolean => {
+    const status = typeof error === 'object' && error !== null
+        ? (error as { status?: unknown; code?: unknown }).status
+            ?? (error as { code?: unknown }).code
+        : undefined;
+    const message = error instanceof Error
+        ? error.message
+        : String(error ?? '');
+
+    return (
+        status === 429
+        || status === 503
+        || status === 'RESOURCE_EXHAUSTED'
+        || status === 'UNAVAILABLE'
+        || /429|too many requests|resource_exhausted|quota|rate.?limit|overloaded|unavailable|503/i.test(message)
+    );
+};
 
 const responseSchema = {
     type: Type.OBJECT,
@@ -40,14 +73,13 @@ const responseSchema = {
 };
 
 /**
- * A robust wrapper for making Gemini API calls that automatically retries with the next
- * available API key upon failure.
- * @param requestFn A function that takes an API key and performs the Gemini request.
- * @returns The result of the successful API request.
- * @throws An error if all API keys fail.
+ * Tries each model in GEMINI_MODELS, rotating API keys inside each attempt.
+ * Quota (429) and overload errors are logged and the next key/model is tried.
  */
-const runRequestWithKeyRotation = async <T>(requestFn: (apiKey: string) => Promise<T>): Promise<T> => {
-    // Re-check keys every time in case they were loaded late or are missing.
+const runRequestWithFallback = async <T>(
+    requestFn: (apiKey: string, model: GeminiModel) => Promise<T>,
+    language: Language,
+): Promise<T> => {
     if (apiKeys.length === 0) {
         apiKeys = getApiKeys();
         if (apiKeys.length === 0) {
@@ -57,35 +89,61 @@ const runRequestWithKeyRotation = async <T>(requestFn: (apiKey: string) => Promi
 
     const totalKeys = apiKeys.length;
     let lastError: Error | null = null;
+    let hitQuotaOrOverload = false;
 
-    // Loop through all keys, starting from the last known working one.
-    for (let i = 0; i < totalKeys; i++) {
-        const keyIndexToTry = (currentApiKeyIndex + i) % totalKeys;
-        const apiKey = apiKeys[keyIndexToTry];
+    for (let modelIndex = 0; modelIndex < GEMINI_MODELS.length; modelIndex++) {
+        const model = GEMINI_MODELS[modelIndex];
+        let modelHitQuotaOrOverload = false;
 
-        try {
-            const result = await requestFn(apiKey);
-            // On success, update the index to this working key. The next request will start here.
-            currentApiKeyIndex = keyIndexToTry;
-            return result;
-        } catch (error) {
-            console.warn(`A chave de API no índice ${keyIndexToTry} falhou. Tentando a próxima.`);
-            lastError = error instanceof Error ? error : new Error(String(error));
+        for (let i = 0; i < totalKeys; i++) {
+            const keyIndexToTry = (currentApiKeyIndex + i) % totalKeys;
+            const apiKey = apiKeys[keyIndexToTry];
+
+            try {
+                const result = await requestFn(apiKey, model);
+                currentApiKeyIndex = keyIndexToTry;
+                return result;
+            } catch (error) {
+                lastError = error instanceof Error ? error : new Error(String(error));
+
+                if (isQuotaOrOverloadError(error)) {
+                    hitQuotaOrOverload = true;
+                    modelHitQuotaOrOverload = true;
+                    console.warn(
+                        `Cota ou sobrecarga no modelo ${model} (chave ${keyIndexToTry}). Tentando a próxima opção.`,
+                    );
+                } else {
+                    console.warn(`A chave de API no índice ${keyIndexToTry} falhou no modelo ${model}. Tentando a próxima.`);
+                }
+            }
+        }
+
+        const isLastModel = modelIndex === GEMINI_MODELS.length - 1;
+        if (!isLastModel) {
+            console.warn(`O modelo ${model} não respondeu. Tentando o próximo da lista.`);
+            if (modelHitQuotaOrOverload) {
+                await wait(FALLBACK_DELAY_MS);
+            }
         }
     }
 
-    // If the loop completes, it means all keys failed.
-    console.error("Todas as chaves de API disponíveis falharam.", lastError);
+    console.error("Todos os modelos e chaves de API disponíveis falharam.", lastError);
+
+    if (hitQuotaOrOverload) {
+        throw new Error(translations[language].geminiBusyError);
+    }
+
     throw new Error("Desculpe, estamos com problemas para nos conectar ao nosso assistente de IA no momento. Por favor, tente novamente mais tarde.");
 };
 
 export const getInstructionsFromGemini = async (userQuery: string, language: Language): Promise<InstructionStep[] | string> => {
+    // Applied on every user message (including the first message of a new conversation).
     const systemPrompt = translations[language].systemPrompt;
 
-    return runRequestWithKeyRotation(async (apiKey) => {
+    return runRequestWithFallback(async (apiKey, model) => {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
+            model,
             contents: userQuery,
             config: {
                 systemInstruction: systemPrompt,
@@ -94,39 +152,42 @@ export const getInstructionsFromGemini = async (userQuery: string, language: Lan
             },
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = response.text?.trim();
+        if (!jsonText) {
+            throw new Error("Resposta da IA vazia.");
+        }
         const data = JSON.parse(jsonText);
 
         if (data && Array.isArray(data.steps)) {
             return data.steps as InstructionStep[];
         }
-        
+
         if (data && typeof data.responseText === 'string') {
             return data.responseText;
         }
 
         console.error("Parsed data is not in expected format:", data);
         throw new Error("Resposta da IA em formato inválido.");
-    });
+    }, language);
 };
 
 export const generateTitleFromQuery = async (userQuery: string, language: Language): Promise<string> => {
     const titlePrompt = translations[language].titlePrompt;
 
-    return runRequestWithKeyRotation(async (apiKey) => {
+    return runRequestWithFallback(async (apiKey, model) => {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
+            model,
             contents: userQuery,
             config: {
                 systemInstruction: titlePrompt,
             },
         });
 
-        const title = response.text.trim();
+        const title = response.text?.trim();
         if (title) {
             return title;
         }
         throw new Error("A IA retornou um título vazio.");
-    });
+    }, language);
 };

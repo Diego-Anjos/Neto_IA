@@ -174,7 +174,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
                             <button
                                 onClick={(e) => handleDelete(e, convo.id)}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-gray-400 hover:bg-red-500/20 hover:text-red-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all min-w-10 min-h-10 flex items-center justify-center"
-                                aria-label={`Excluir conversa ${convo.title}`}
+                                aria-label={`${t('deleteButton')} ${convo.title}`}
                             >
                                 <TrashIcon />
                             </button>
@@ -244,4 +244,4 @@ const Sidebar: React.FC<SidebarProps> = ({ user, allUsers, conversations, active
     );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

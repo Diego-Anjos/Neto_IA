@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../hooks/useTranslations';
-import ConfirmModal from './ConfirmModal';
 
 interface SettingsModalProps {
     onClose: () => void;
-    onClearHistory: () => void;
+    onClearHistory: () => Promise<void> | void;
 }
 
 const SettingsIcon = () => (
@@ -18,15 +17,20 @@ const SettingsIcon = () => (
 const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onClearHistory }) => {
     const { language, setLanguage } = useLanguage();
     const t = useTranslations();
-    const [isClearHistoryModalOpen, setIsClearHistoryModalOpen] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
 
-    const handleClearClick = () => {
-        setIsClearHistoryModalOpen(true);
-    };
+    const handleClearClick = async () => {
+        const confirmed = window.confirm(t('clearHistoryNativeConfirm'));
+        if (!confirmed) return;
 
-    const handleConfirmClearHistory = () => {
-        setIsClearHistoryModalOpen(false);
-        onClearHistory();
+        setIsClearing(true);
+        try {
+            await onClearHistory();
+        } catch (error) {
+            console.error('Falha ao limpar histórico', error);
+        } finally {
+            setIsClearing(false);
+        }
     };
 
     return (
@@ -72,7 +76,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onClearHistory }
                         <p className="text-sm text-gray-400 mt-1 mb-4">{t('dangerZoneDescription')}</p>
                         <button
                             onClick={handleClearClick}
-                            className="w-full px-4 py-3 font-semibold text-white bg-red-600/80 rounded-lg hover:bg-red-600 transition-colors"
+                            disabled={isClearing}
+                            className="w-full px-4 py-3 font-semibold text-white bg-red-600/80 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-60"
                         >
                             {t('clearHistoryButton')}
                         </button>
@@ -89,15 +94,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onClearHistory }
                     </button>
                 </div>
             </div>
-            <ConfirmModal
-                isOpen={isClearHistoryModalOpen}
-                title={t('clearHistoryTitle')}
-                message={t('clearHistoryConfirmation')}
-                confirmText={t('clearHistoryConfirmButton')}
-                cancelText={t('cancelButton')}
-                onConfirm={handleConfirmClearHistory}
-                onCancel={() => setIsClearHistoryModalOpen(false)}
-            />
         </div>
     );
 };

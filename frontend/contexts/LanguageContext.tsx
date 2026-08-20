@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo, ReactNode } from 'react';
 import type { Language } from '../utils/translations';
 
 interface LanguageContextType {
@@ -21,13 +21,16 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     useEffect(() => {
         try {
             localStorage.setItem('netoia-language', language);
+            document.documentElement.lang = language === 'es-ES' ? 'es' : 'pt-BR';
         } catch (error) {
             console.error("Failed to save language to localStorage", error);
         }
     }, [language]);
 
+    const value = useMemo(() => ({ language, setLanguage }), [language]);
+
     return (
-        <LanguageContext.Provider value={{ language, setLanguage }}>
+        <LanguageContext.Provider value={value}>
             {children}
         </LanguageContext.Provider>
     );

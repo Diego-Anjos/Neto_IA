@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Message, InstructionStep } from '../types';
 import InstructionStepComponent from './InstructionStepComponent';
-import { useSpeech } from '../hooks/useSpeech';
+import { useTextToSpeech } from '../hooks/useSpeech';
 import { useTranslations } from '../hooks/useTranslations';
 
 interface MessageBubbleProps {
@@ -46,7 +46,7 @@ const CheckIcon = () => (
 
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
-  const { speak, pause, resume, speechStatus, currentText } = useSpeech(() => {});
+  const { speak, pause, resume, speechStatus, currentText } = useTextToSpeech();
   const [isCopied, setIsCopied] = useState(false);
   const t = useTranslations();
 
@@ -160,4 +160,4 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   );
 };
 
-export default MessageBubble;
+export default React.memo(MessageBubble);

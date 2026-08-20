@@ -5,27 +5,20 @@ import { PrismaService } from '../prisma/prisma.service';
 export class FeedbackService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(message: string, userId?: string | null) {
+  create(message: string, userId: string) {
     const trimmedMessage = message?.trim();
     if (!trimmedMessage) {
       throw new BadRequestException('A mensagem de feedback é obrigatória.');
     }
 
-    let resolvedUserId: string | null = userId?.trim() || null;
-    if (resolvedUserId) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: resolvedUserId },
-        select: { id: true },
-      });
-      if (!user) {
-        resolvedUserId = null;
-      }
-    }
-
     return this.prisma.feedback.create({
       data: {
         message: trimmedMessage,
-        userId: resolvedUserId,
+        userId,
+      },
+      select: {
+        id: true,
+        createdAt: true,
       },
     });
   }

@@ -1,9 +1,37 @@
 import axios from 'axios';
 import type { Conversation, InstructionStep, Message, User } from '../types';
 
+const AUTH_TOKEN_KEY = 'netoia-auth-token';
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
 });
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const url = String(error?.config?.url ?? '');
+    const isAuthAttempt = url.includes('/users/auth');
+
+    if (status === 401 && !isAuthAttempt) {
+      setAuthToken(null);
+      window.dispatchEvent(new Event('netoia-unauthorized'));
+    }
+
+    return Promise.reject(error);
+  },
+);
+
+type AuthResponse = User & { token: string };
 
 type DbConversation = {
   id: string;
@@ -48,39 +76,45 @@ const mapMessage = (message: DbMessage): Message => ({
   content: parseMessageContent(message.content),
 });
 
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+  }
+};
+
+export const getAuthToken = () => localStorage.getItem(AUTH_TOKEN_KEY);
+
 export const loginUser = async (
   email: string,
   password: string,
   name?: string,
 ): Promise<User> => {
-  const { data } = await api.post<User>('/users/auth', {
+  const { data } = await api.post<AuthResponse>('/users/auth', {
     email,
     password,
     name,
   });
+  const { token, ...user } = data;
+  setAuthToken(token);
+  return user;
+};
+
+export const fetchCurrentUser = async (): Promise<User> => {
+  const { data } = await api.get<User>('/users/me');
   return data;
 };
 
-export const fetchUsers = async (): Promise<User[]> => {
-  const { data } = await api.get<User[]>('/users');
-  return data;
-};
-
-export const fetchUserConversations = async (
-  userId: string,
-): Promise<Conversation[]> => {
-  const { data } = await api.get<DbConversation[]>(
-    `/conversations/user/${userId}`,
-  );
+export const fetchUserConversations = async (): Promise<Conversation[]> => {
+  const { data } = await api.get<DbConversation[]>('/conversations');
   return data.map(mapConversation);
 };
 
 export const createNewConversation = async (
-  userId: string,
   title?: string,
 ): Promise<Conversation> => {
   const { data } = await api.post<DbConversation>('/conversations', {
-    userId,
     title,
   });
   return mapConversation(data);
@@ -101,8 +135,8 @@ export const deleteConversation = async (conversationId: string): Promise<void> 
   await api.delete(`/conversations/${conversationId}`);
 };
 
-export const deleteUserConversations = async (userId: string): Promise<void> => {
-  await api.delete(`/conversations/user/${userId}`);
+export const deleteUserConversations = async (): Promise<void> => {
+  await api.delete('/conversations');
 };
 
 export const fetchMessages = async (
@@ -127,14 +161,8 @@ export const saveMessageToDb = async (
   return mapMessage(data);
 };
 
-export const sendFeedback = async (
-  message: string,
-  userId?: string,
-): Promise<void> => {
-  await api.post('/feedback', {
-    message,
-    userId,
-  });
+export const sendFeedback = async (message: string): Promise<void> => {
+  await api.post('/feedback', { message });
 };
 
 export default api;

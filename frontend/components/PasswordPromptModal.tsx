@@ -4,18 +4,25 @@ import { useTranslations } from '../hooks/useTranslations';
 
 interface PasswordPromptModalProps {
     user: User;
-    onConfirm: (password: string) => void;
+    onConfirm: (password: string) => void | Promise<void>;
     onCancel: () => void;
     error: string;
 }
 
 const PasswordPromptModal: React.FC<PasswordPromptModalProps> = ({ user, onConfirm, onCancel, error }) => {
     const [password, setPassword] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const t = useTranslations();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm(password);
+        if (!password.trim() || isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            await onConfirm(password);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -53,13 +60,15 @@ const PasswordPromptModal: React.FC<PasswordPromptModalProps> = ({ user, onConfi
                          <button
                             type="button"
                             onClick={onCancel}
-                            className="w-full px-4 py-3 font-semibold text-white bg-violet-700/50 rounded-lg hover:bg-violet-700/80 transition-colors"
+                            disabled={isSubmitting}
+                            className="w-full px-4 py-3 font-semibold text-white bg-violet-700/50 rounded-lg hover:bg-violet-700/80 transition-colors disabled:opacity-60"
                         >
                             {t('cancelButton')}
                         </button>
                         <button
                             type="submit"
-                            className="w-full px-4 py-3 font-semibold text-white bg-pink-600 rounded-lg hover:bg-pink-700 transition-colors"
+                            disabled={isSubmitting || !password.trim()}
+                            className="w-full px-4 py-3 font-semibold text-white bg-pink-600 rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-60"
                         >
                             {t('confirmButton')}
                         </button>

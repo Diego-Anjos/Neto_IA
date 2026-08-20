@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+const CONVERSATION_LIST_LIMIT = 200;
+
 @Injectable()
 export class ConversationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -9,47 +11,49 @@ export class ConversationsService {
     return this.prisma.conversation.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
+      take: CONVERSATION_LIST_LIMIT,
     });
   }
 
-  async create(userId: string, title?: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado.');
-    }
-
+  create(userId: string, title?: string) {
     return this.prisma.conversation.create({
       data: {
         userId,
-        title: title || 'Nova Conversa',
+        title: title?.trim() || 'Nova Conversa',
       },
     });
   }
 
-  async updateTitle(id: string, title: string) {
-    await this.ensureExists(id);
-    return this.prisma.conversation.update({
-      where: { id },
-      data: { title },
+  async updateTitle(id: string, title: string, userId: string) {
+    const updated = await this.prisma.conversation.updateMany({
+      where: { id, userId },
+      data: { title: title.trim() },
     });
-  }
 
-  async remove(id: string) {
-    await this.ensureExists(id);
-    return this.prisma.conversation.delete({ where: { id } });
-  }
-
-  async removeByUser(userId: string) {
-    return this.prisma.conversation.deleteMany({ where: { userId } });
-  }
-
-  private async ensureExists(id: string) {
-    const conversation = await this.prisma.conversation.findUnique({
-      where: { id },
-    });
-    if (!conversation) {
+    if (updated.count === 0) {
       throw new NotFoundException('Conversa não encontrada.');
     }
-    return conversation;
+
+    return this.prisma.conversation.findFirstOrThrow({
+      where: { id, userId },
+    });
+  }
+
+  async remove(id: string, userId: string) {
+    const deleted = await this.prisma.conversation.deleteMany({
+      where: { id, userId },
+    });
+
+    if (deleted.count === 0) {
+      throw new NotFoundException('Conversa não encontrada.');
+    }
+
+    return { id };
+  }
+
+  removeByUser(userId: string) {
+    return this.prisma.conversation.deleteMany({
+      where: { userId },
+    });
   }
 }
